@@ -1,0 +1,57 @@
+{
+  "name": "@andromanpro/cyberpunk-captcha",
+  "version": "0.1.0",
+  "description": "Six cyberpunk-style captcha mechanics for comment forms or anti-bot challenges. Vanilla JS, zero deps.",
+  "main": "./dist/cyberpunk-captcha.js",
+  "module": "./dist/cyberpunk-captcha.esm.js",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/cyberpunk-captcha.esm.js",
+      "default": "./dist/cyberpunk-captcha.js"
+    },
+    "./style.css": "./dist/cyberpunk-captcha.css"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "dev": "node tools/build.mjs --watch",
+    "serve": "python -m http.server 8000"
+  },
+  "peerDependencies": {
+    "@andromanpro/lava-orb": "^0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@andromanpro/lava-orb": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  },
+  "keywords": [
+    "captcha",
+    "cyberpunk",
+    "anti-spam",
+    "anti-bot",
+    "vanilla-js",
+    "zero-deps",
+    "decoder",
+    "honeypot"
+  ],
+  "author": "Roman Andriyanov (androman) <andromanpro@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/andromanpro/cyberpunk-captcha.git"
+  },
+  "homepage": "https://andromanpro.github.io/cyberpunk-captcha",
+  "bugs": {
+    "url": "https://github.com/andromanpro/cyberpunk-captcha/issues"
+  }
+}

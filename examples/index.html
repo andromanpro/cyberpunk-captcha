@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>cyberpunk-captcha — all six</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../dist/cyberpunk-captcha.css">
+<style>
+  body {
+    background: #0a0e1a;
+    color: #e6edf3;
+    font-family: 'Inter', -apple-system, sans-serif;
+    margin: 0;
+    padding: 32px 20px;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  h1 {
+    font-family: 'Manrope', 'Inter', sans-serif;
+    font-weight: 800;
+    margin: 0 0 8px;
+    background: linear-gradient(135deg, #00d4ff, #00ff88);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #00d4ff;
+    margin: 32px 0 8px;
+    border-top: 1px dashed rgba(0, 212, 255, 0.2);
+    padding-top: 18px;
+  }
+  p { color: #b5bcc4; line-height: 1.55; }
+  a { color: #00d4ff; }
+  .demo-actions {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+  }
+  .demo-actions button {
+    background: transparent;
+    border: 1px solid #00d4ff;
+    color: #00d4ff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .demo-actions button:hover { background: rgba(0, 212, 255, 0.1); }
+  .verdict {
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    display: none;
+  }
+  .verdict.show { display: block; }
+  .verdict.pass { background: rgba(0, 255, 136, 0.08); border: 1px solid #00ff88; color: #00ff88; }
+  .verdict.fail { background: rgba(255, 64, 96, 0.08); border: 1px solid #ff4060; color: #ff4060; }
+  .nav { display: flex; gap: 12px; flex-wrap: wrap; font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-bottom: 24px; }
+  .nav a { color: #6f7686; text-decoration: none; padding: 4px 10px; border: 1px solid #2a3142; border-radius: 4px; }
+  .nav a:hover { color: #00d4ff; border-color: #00d4ff; }
+</style>
+</head>
+<body>
+
+<h1>// cyberpunk-captcha · all six</h1>
+<p>Master demo — все шесть капч сразу. Для individual demos смотри отдельные файлы (links ниже).</p>
+
+<div class="nav">
+  <a href="decoder-lock.html">decoder-lock</a>
+  <a href="lava-orb-temp.html">lava-orb</a>
+  <a href="sequence-decode.html">sequence</a>
+  <a href="honeypot-time.html">honeypot</a>
+  <a href="code-bug-1c.html">code-bug</a>
+  <a href="scrub-reveal.html">scrub</a>
+  <a href="rotation.html">rotation</a>
+</div>
+
+<h2>01 / Decoder Lock</h2>
+<p>Type the word that morphs from noise.</p>
+<div id="m-decoder"></div>
+<div class="demo-actions">
+  <button data-validate="decoder">Submit</button>
+  <button data-replay="decoder">Replay</button>
+</div>
+<div class="verdict" id="v-decoder"></div>
+
+<h2>02 / Lava-Orb Temperature</h2>
+<p>Drag slider into the target temperature band.</p>
+<div id="m-lava"></div>
+<div class="demo-actions">
+  <button data-validate="lava">Submit</button>
+  <button data-replay="lava">Replay</button>
+</div>
+<div class="verdict" id="v-lava"></div>
+
+<h2>03 / Sequence Decode</h2>
+<p>Watch the flash sequence, then repeat.</p>
+<div id="m-seq"></div>
+<div class="demo-actions">
+  <button data-validate="seq">Submit</button>
+  <button data-replay="seq">Replay</button>
+</div>
+<div class="verdict" id="v-seq"></div>
+
+<h2>04 / Honeypot + Time</h2>
+<p>Invisible. Debug overlay shows the verdict in realtime.</p>
+<div id="m-hp"></div>
+<div class="demo-actions">
+  <button data-validate="hp">Submit</button>
+  <button data-replay="hp">Replay</button>
+</div>
+<div class="verdict" id="v-hp"></div>
+
+<h2>05 / 1С Code Spot the Bug</h2>
+<p>Click the broken 1С code snippet (audience-specific captcha).</p>
+<div id="m-bug"></div>
+<div class="demo-actions">
+  <button data-validate="bug">Submit</button>
+  <button data-replay="bug">Replay</button>
+</div>
+<div class="verdict" id="v-bug"></div>
+
+<h2>06 / Scrub Reveal</h2>
+<p>Drag slider into the sweet-spot window (random ±3%), type the revealed word.</p>
+<div id="m-scrub"></div>
+<div class="demo-actions">
+  <button data-validate="scrub">Submit</button>
+  <button data-replay="scrub">Replay</button>
+</div>
+<div class="verdict" id="v-scrub"></div>
+
+<script src="../dist/cyberpunk-captcha.js"></script>
+<script>
+  const C = window.CyberpunkCaptcha;
+  const captchas = {
+    decoder: new C.DecoderLock(document.getElementById('m-decoder')),
+    lava:    new C.LavaOrbTemp(document.getElementById('m-lava')),
+    seq:     new C.SequenceDecode(document.getElementById('m-seq')),
+    hp:      new C.HoneypotTime(document.getElementById('m-hp')),
+    bug:     new C.CodeBug1C(document.getElementById('m-bug')),
+    scrub:   new C.ScrubReveal(document.getElementById('m-scrub'))
+  };
+
+  document.querySelectorAll('[data-validate]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.getAttribute('data-validate');
+      const captcha = captchas[key];
+      const v = captcha.validate();
+      const verdict = document.getElementById('v-' + key);
+      verdict.className = 'verdict show ' + (v.pass ? 'pass' : 'fail');
+      verdict.textContent = (v.pass ? '✓ PASS · ' : '✗ FAIL · ') + v.message;
+    });
+  });
+  document.querySelectorAll('[data-replay]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.getAttribute('data-replay');
+      captchas[key].replay();
+      const verdict = document.getElementById('v-' + key);
+      verdict.className = 'verdict';
+    });
+  });
+</script>
+
+</body>
+</html>

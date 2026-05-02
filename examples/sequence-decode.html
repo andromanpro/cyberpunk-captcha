@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>cyberpunk-captcha — SequenceDecode</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../dist/cyberpunk-captcha.css">
+<style>
+  body { background: #0a0e1a; color: #e6edf3; font-family: 'Inter', sans-serif; margin: 0; padding: 32px 20px; max-width: 760px; margin-left: auto; margin-right: auto; }
+  h1 { font-family: 'Manrope', 'Inter', sans-serif; font-weight: 800; margin: 0 0 8px; background: linear-gradient(135deg, #00d4ff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  p { color: #b5bcc4; line-height: 1.55; }
+  a { color: #00d4ff; }
+  .demo-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .demo-actions button { background: transparent; border: 1px solid #00d4ff; color: #00d4ff; font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 6px 14px; border-radius: 4px; cursor: pointer; letter-spacing: 0.12em; text-transform: uppercase; }
+  .demo-actions button:hover { background: rgba(0, 212, 255, 0.1); }
+  .verdict { margin-top: 8px; padding: 8px 12px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.1em; display: none; }
+  .verdict.show { display: block; }
+  .verdict.pass { background: rgba(0, 255, 136, 0.08); border: 1px solid #00ff88; color: #00ff88; }
+  .verdict.fail { background: rgba(255, 64, 96, 0.08); border: 1px solid #ff4060; color: #ff4060; }
+  .back { font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-bottom: 24px; }
+  .back a { color: #6f7686; text-decoration: none; }
+  .back a:hover { color: #00d4ff; }
+</style>
+</head>
+<body>
+
+<div class="back"><a href="index.html">&larr; back to all demos</a></div>
+
+<h1>SequenceDecode</h1>
+<p>Watch the flash sequence, then repeat.</p>
+
+<div id="captcha-mount"></div>
+
+<div class="demo-actions">
+  <button id="validate">Submit</button>
+  <button id="replay">Replay</button>
+</div>
+
+<div class="verdict" id="verdict"></div>
+
+<script src="../dist/cyberpunk-captcha.js"></script>
+<script>
+  const captcha = new window.CyberpunkCaptcha.SequenceDecode(document.getElementById('captcha-mount'));
+  document.getElementById('validate').addEventListener('click', () => {
+    const v = captcha.validate();
+    const el = document.getElementById('verdict');
+    el.className = 'verdict show ' + (v.pass ? 'pass' : 'fail');
+    el.textContent = (v.pass ? '✓ PASS · ' : '✗ FAIL · ') + v.message;
+  });
+  document.getElementById('replay').addEventListener('click', () => {
+    captcha.replay();
+    document.getElementById('verdict').className = 'verdict';
+  });
+</script>
+
+</body>
+</html>
