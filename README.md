@@ -1,5 +1,7 @@
 # cyberpunk-captcha
 
+🇬🇧 **English** · 🇷🇺 [Русский](README.ru.md)
+
 > Six cyberpunk-style captcha mechanics for comment forms or anti-bot challenges.
 > Vanilla JS, zero deps (lava-orb optional peer). Reduced-motion respected.
 
