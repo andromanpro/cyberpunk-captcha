@@ -175,7 +175,10 @@ var CyberpunkCaptcha = (() => {
       this._display = this.mount.querySelector(".cpcap-decoder-display");
       this._statusEl = this.mount.querySelector(".cpcap-decoder-status");
       this._input = this.mount.querySelector(".cpcap-decoder-input");
-      this._input.addEventListener("input", () => this.emit("change"));
+      this._input.addEventListener("input", () => {
+        this._userTyped = true;
+        this.emit("change");
+      });
       if (this._reduced) {
         this._display.textContent = this.state.expected;
         this._statusEl.textContent = "\u2713 locked";
@@ -183,9 +186,26 @@ var CyberpunkCaptcha = (() => {
         this.state.locked = true;
         return;
       }
-      this._runDecode();
+      this._userTyped = false;
+      this._startLoop();
     }
-    _runDecode() {
+    // Петля: decode → пауза 2.5s → scramble → пауза 0.4s → decode → …
+    // Останавливается когда пользователь начал печатать.
+    _startLoop() {
+      if (this._destroyed || this._userTyped) return;
+      this._statusEl.textContent = "decoding\u2026";
+      this._statusEl.style.color = "";
+      this._runDecode(() => {
+        this._timer = setTimeout(() => {
+          if (this._destroyed || this._userTyped) return;
+          this._runScramble(() => {
+            this._timer = setTimeout(() => this._startLoop(), 400);
+          });
+        }, 2500);
+      });
+    }
+    // Decode: символы открываются слева направо
+    _runDecode(onComplete) {
       const word = this.state.expected;
       const noise = this.state.noise;
       let revealed = 0;
@@ -193,11 +213,7 @@ var CyberpunkCaptcha = (() => {
         if (this._destroyed) return;
         let out = "";
         for (let i = 0; i < word.length; i++) {
-          if (i < revealed) {
-            out += word.charAt(i);
-          } else {
-            out += noise.charAt(Math.floor(Math.random() * noise.length));
-          }
+          out += i < revealed ? word.charAt(i) : noise.charAt(Math.floor(Math.random() * noise.length));
         }
         this._display.textContent = out;
         if (revealed < word.length) {
@@ -208,6 +224,29 @@ var CyberpunkCaptcha = (() => {
           this._statusEl.style.color = "var(--cpcap-cyan)";
           this.state.locked = true;
           this.emit("lock");
+          if (onComplete) onComplete();
+        }
+      };
+      tick();
+    }
+    // Scramble: символы прячутся справа налево
+    _runScramble(onComplete) {
+      const word = this.state.expected;
+      const noise = this.state.noise;
+      this.state.locked = false;
+      let visible = word.length;
+      const tick = () => {
+        if (this._destroyed) return;
+        let out = "";
+        for (let i = 0; i < word.length; i++) {
+          out += i < visible ? word.charAt(i) : noise.charAt(Math.floor(Math.random() * noise.length));
+        }
+        this._display.textContent = out;
+        if (visible > 0) {
+          visible--;
+          this._timer = setTimeout(tick, 40);
+        } else {
+          if (onComplete) onComplete();
         }
       };
       tick();
@@ -316,7 +355,14 @@ var CyberpunkCaptcha = (() => {
 
   // src/captchas/SequenceDecode.js
   var COLORS = ["cyan", "pink", "amber", "green"];
-  var SYMBOLS = { cyan: "\u25B4", pink: "\u25B6", amber: "\u25BE", green: "\u25C0" };
+  var ICONS = {
+    cyan: '<svg viewBox="0 0 36 36" width="34" height="34" aria-hidden="true"><polygon points="18,4 31,11.5 31,24.5 18,32 5,24.5 5,11.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter"/><circle cx="18" cy="18" r="3" fill="currentColor"/></svg>',
+    pink: '<svg viewBox="0 0 36 36" width="34" height="34" aria-hidden="true"><circle cx="18" cy="18" r="13" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="18" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="18" cy="18" r="3" fill="currentColor"/></svg>',
+    amber: '<svg viewBox="0 0 36 36" width="34" height="34" aria-hidden="true"><polyline points="5,21 11,12 14,18 18,9 22,18 25,12 31,21" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square"/></svg>',
+    green: '<svg viewBox="0 0 36 36" width="34" height="34" aria-hidden="true"><rect x="6" y="6" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"/><line x1="6" y1="14" x2="30" y2="14" stroke="currentColor" stroke-width="1.5"/><line x1="6" y1="22" x2="30" y2="22" stroke="currentColor" stroke-width="1.5"/><line x1="14" y1="6" x2="14" y2="30" stroke="currentColor" stroke-width="1.5"/><line x1="22" y1="6" x2="22" y2="30" stroke="currentColor" stroke-width="1.5"/></svg>'
+  };
+  var LABELS = { cyan: "01_HEX", pink: "02_CORE", amber: "03_WAVE", green: "04_GRID" };
+  var SYMBOLS = { cyan: "\u25A2HEX", pink: "\u25C9CORE", amber: "\u3030WAVE", green: "\u25A6GRID" };
   var SequenceDecode = class extends BaseCaptcha {
     render() {
       const minLen = this.options.minLen || 3;
@@ -333,7 +379,7 @@ var CyberpunkCaptcha = (() => {
         <span class="cpcap-seq-status">memorize\u2026</span>
       </div>
       <div class="cpcap-seq-pad">
-        ${COLORS.map((c) => `<button type="button" class="cpcap-seq-btn" data-color="${c}">${SYMBOLS[c]}</button>`).join("")}
+        ${COLORS.map((c) => `<button type="button" class="cpcap-seq-btn" data-color="${c}" aria-label="${LABELS[c]}"><span class="cpcap-seq-icon">${ICONS[c]}</span><span class="cpcap-seq-tag">${LABELS[c]}</span></button>`).join("")}
       </div>
       <div class="cpcap-seq-progress"></div>
       <div style="text-align: center; margin-top: 8px;">

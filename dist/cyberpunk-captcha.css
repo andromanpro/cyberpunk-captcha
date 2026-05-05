@@ -19,12 +19,50 @@
 
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--cpcap-bg-alt);
-  border: 1px dashed rgba(0, 212, 255, 0.25);
-  border-radius: 6px;
-  padding: 16px;
+  border: 1px solid rgba(0, 212, 255, 0.18);
+  border-radius: 4px;
+  padding: 22px 18px 18px;
   color: var(--cpcap-text);
-  margin: 12px 0;
+  margin: 16px 0;
+  position: relative;
+  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.08), inset 0 0 36px rgba(0, 212, 255, 0.025);
 }
+/* Corner brackets — 4 L-shapes на углах (8 background layers форм. 4 пары линий) */
+.cpcap::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, var(--cpcap-cyan), var(--cpcap-cyan)) top    left  / 14px 1px no-repeat,
+    linear-gradient(to bottom, var(--cpcap-cyan), var(--cpcap-cyan)) top    left  / 1px 14px no-repeat,
+    linear-gradient(to right, var(--cpcap-cyan), var(--cpcap-cyan)) top    right / 14px 1px no-repeat,
+    linear-gradient(to bottom, var(--cpcap-cyan), var(--cpcap-cyan)) top    right / 1px 14px no-repeat,
+    linear-gradient(to right, var(--cpcap-cyan), var(--cpcap-cyan)) bottom left  / 14px 1px no-repeat,
+    linear-gradient(to bottom, var(--cpcap-cyan), var(--cpcap-cyan)) bottom left  / 1px 14px no-repeat,
+    linear-gradient(to right, var(--cpcap-cyan), var(--cpcap-cyan)) bottom right / 14px 1px no-repeat,
+    linear-gradient(to bottom, var(--cpcap-cyan), var(--cpcap-cyan)) bottom right / 1px 14px no-repeat;
+  opacity: 0.6;
+  z-index: 1;
+}
+/* Subtle scanlines overlay на фоне всей капчи */
+.cpcap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 212, 255, 0.025) 0px,
+    rgba(0, 212, 255, 0.025) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  border-radius: inherit;
+  z-index: 0;
+  mix-blend-mode: screen;
+}
+.cpcap > * { position: relative; z-index: 2; }
 
 .cpcap-label {
   display: flex;
@@ -35,7 +73,27 @@
   color: var(--cpcap-cyan);
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed rgba(0, 212, 255, 0.15);
+}
+.cpcap-label > span:first-child {
+  text-shadow: 0 0 6px rgba(0, 212, 255, 0.35);
+}
+/* Pulsing dot before label first span */
+.cpcap-label > span:first-child::before {
+  content: '●';
+  display: inline-block;
+  margin-right: 6px;
+  color: var(--cpcap-signal-green);
+  text-shadow: 0 0 6px var(--cpcap-signal-green);
+  animation: cpcapPulse 1.6s ease-in-out infinite;
+  vertical-align: middle;
+  font-size: 10px;
+}
+@keyframes cpcapPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(1.3); }
 }
 
 .cpcap-status {
@@ -93,17 +151,69 @@
 /* ── DecoderLock ── */
 .cpcap-decoder-display {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 22px;
-  letter-spacing: 0.1em;
+  font-size: 24px;
+  letter-spacing: 0.12em;
   text-align: center;
-  padding: 8px 0;
-  min-height: 28px;
+  padding: 18px 12px;
+  min-height: 32px;
+  background:
+    radial-gradient(ellipse at center, rgba(0, 212, 255, 0.06), transparent 70%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4)),
+    var(--cpcap-bg);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 4px;
+  margin: 6px 0 12px;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.35);
+  color: var(--cpcap-text);
+}
+.cpcap-decoder-display::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cpcap-cyan), transparent);
+  box-shadow: 0 0 12px var(--cpcap-cyan);
+  animation: cpcapDecoderBeam 2.2s linear infinite;
+  pointer-events: none;
+  top: 0;
+}
+@keyframes cpcapDecoderBeam {
+  0%   { top: -2px; opacity: 0.8; }
+  90%  { opacity: 0.8; }
+  100% { top: 100%; opacity: 0; }
 }
 
 /* ── LavaOrbTemp ── */
+.cpcap-lava-target {
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: rgba(0, 212, 255, 0.08);
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+}
 .cpcap-lava-wrap {
   padding: 70px 20px 90px;
   display: block;
+  position: relative;
+}
+.cpcap-lava-wrap::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 6px; right: 6px;
+  height: 26px;
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(0, 212, 255, 0.15) 0px,
+    rgba(0, 212, 255, 0.15) 1px,
+    transparent 1px,
+    transparent 10%
+  );
+  pointer-events: none;
+  opacity: 0.5;
 }
 .cpcap-lava-wrap input[type=range] {
   width: 100%;
@@ -166,34 +276,80 @@
   letter-spacing: 0.1em;
 }
 .cpcap-lava-readout .side { color: var(--cpcap-text-muted); }
-.cpcap-lava-readout .current { color: var(--cpcap-cyan); font-weight: 600; font-size: 13px; }
+.cpcap-lava-readout .current {
+  color: var(--cpcap-cyan);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 4px 12px;
+  border: 1px solid var(--cpcap-cyan);
+  border-radius: 3px;
+  background: rgba(0, 212, 255, 0.08);
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+}
 
 /* ── SequenceDecode ── */
 .cpcap-seq-pad {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  max-width: 280px;
-  margin: 8px auto;
+  gap: 10px;
+  max-width: 320px;
+  margin: 12px auto;
 }
 .cpcap-seq-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   aspect-ratio: 1.6 / 1;
-  background: var(--cpcap-bg);
-  border: 2px solid var(--cpcap-border);
-  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(0, 212, 255, 0.04), rgba(0, 212, 255, 0)),
+    var(--cpcap-bg);
+  border: 1px solid var(--cpcap-border);
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.15s;
-  font-size: 28px;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s, background 0.15s;
   color: var(--cpcap-text);
+  position: relative;
+  overflow: hidden;
+}
+.cpcap-seq-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0.4;
 }
 .cpcap-seq-btn[data-color=cyan]   { color: #00d4ff; }
 .cpcap-seq-btn[data-color=pink]   { color: #ff40c0; }
 .cpcap-seq-btn[data-color=amber]  { color: #ffaa20; }
 .cpcap-seq-btn[data-color=green]  { color: #00ff88; }
-.cpcap-seq-btn:hover { border-color: var(--cpcap-cyan); }
+.cpcap-seq-btn:hover {
+  border-color: currentColor;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.04), inset 0 0 14px rgba(0, 212, 255, 0.05);
+}
 .cpcap-seq-btn.flash {
-  box-shadow: 0 0 26px currentColor, inset 0 0 26px currentColor;
+  box-shadow:
+    0 0 32px currentColor,
+    inset 0 0 24px rgba(255, 255, 255, 0.15);
+  border-color: currentColor;
   transform: scale(1.04);
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.12), transparent 70%),
+    var(--cpcap-bg);
+}
+.cpcap-seq-icon {
+  display: inline-flex;
+  filter: drop-shadow(0 0 6px currentColor);
+}
+.cpcap-seq-icon svg { display: block; }
+.cpcap-seq-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: currentColor;
+  opacity: 0.75;
 }
 .cpcap-seq-progress {
   text-align: center;
@@ -208,8 +364,30 @@
 .cpcap-hp-debug {
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 1.7;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1)),
+    var(--cpcap-bg);
+  border: 1px solid rgba(0, 212, 255, 0.18);
+  border-radius: 4px;
+  padding: 12px 14px;
+  position: relative;
+  overflow: hidden;
 }
+.cpcap-hp-debug::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 212, 255, 0.04) 0px,
+    rgba(0, 212, 255, 0.04) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+}
+.cpcap-hp-debug > div { position: relative; z-index: 2; padding: 2px 0; }
 .cpcap-hp-honey {
   position: absolute;
   left: -9999px;
@@ -226,34 +404,103 @@
   gap: 10px;
 }
 .cpcap-bug-snippet {
-  background: var(--cpcap-bg);
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.25), transparent),
+    var(--cpcap-bg);
   border: 1px solid var(--cpcap-border);
   border-radius: 4px;
-  padding: 10px 12px;
+  padding: 12px 14px 12px 44px;
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   line-height: 1.55;
   white-space: pre-wrap;
   color: var(--cpcap-text);
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  position: relative;
+  counter-increment: cpcap-snippet;
 }
-.cpcap-bug-snippet:hover { border-color: var(--cpcap-cyan); background: rgba(0, 212, 255, 0.04); }
-.cpcap-bug-snippet.cpcap-locked-correct { border-color: var(--cpcap-signal-green); background: rgba(0, 255, 136, 0.06); }
-.cpcap-bug-snippet.cpcap-locked-wrong   { border-color: var(--cpcap-hot); background: rgba(255, 64, 96, 0.06); }
+.cpcap-bug-snippet::before {
+  content: counter(cpcap-snippet, decimal-leading-zero);
+  position: absolute;
+  left: 10px;
+  top: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--cpcap-cyan);
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+}
+.cpcap-bug-snippet::after {
+  content: '';
+  position: absolute;
+  left: 28px; top: 12px; bottom: 12px;
+  width: 1px;
+  background: rgba(0, 212, 255, 0.15);
+}
+.cpcap-bug-snippets { counter-reset: cpcap-snippet; }
+.cpcap-bug-snippet:hover {
+  border-color: var(--cpcap-cyan);
+  background:
+    linear-gradient(180deg, rgba(0, 212, 255, 0.06), rgba(0, 212, 255, 0.02)),
+    var(--cpcap-bg);
+  transform: translateX(2px);
+}
+.cpcap-bug-snippet.cpcap-locked-correct {
+  border-color: var(--cpcap-signal-green);
+  background: rgba(0, 255, 136, 0.08);
+  box-shadow: 0 0 16px rgba(0, 255, 136, 0.2);
+}
+.cpcap-bug-snippet.cpcap-locked-correct::before { color: var(--cpcap-signal-green); opacity: 1; }
+.cpcap-bug-snippet.cpcap-locked-wrong {
+  border-color: var(--cpcap-hot);
+  background: rgba(255, 64, 96, 0.08);
+  animation: cpcapShake 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.cpcap-bug-snippet.cpcap-locked-wrong::before { color: var(--cpcap-hot); opacity: 1; }
+@keyframes cpcapShake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-3px); }
+  75%      { transform: translateX(3px); }
+}
 
 /* ── ScrubReveal ── */
 .cpcap-scrub-display {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 22px;
-  letter-spacing: 0.1em;
+  font-size: 26px;
+  letter-spacing: 0.18em;
   text-align: center;
-  padding: 12px 0;
-  min-height: 32px;
+  padding: 18px 12px;
+  min-height: 36px;
+  background:
+    radial-gradient(ellipse at center, rgba(0, 212, 255, 0.06), transparent 70%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1)),
+    var(--cpcap-bg);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 4px;
+  margin-bottom: 14px;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+  color: var(--cpcap-text);
+  position: relative;
+  overflow: hidden;
+}
+.cpcap-scrub-display::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 212, 255, 0.05) 0px,
+    rgba(0, 212, 255, 0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
 }
 .cpcap-scrub-slider {
   width: 100%;
   accent-color: var(--cpcap-cyan);
+  height: 4px;
 }
 .cpcap-scrub-readout {
   display: flex;
@@ -261,8 +508,20 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   color: var(--cpcap-text-muted);
-  margin-top: 4px;
+  margin-top: 8px;
+  letter-spacing: 0.1em;
 }
+.cpcap-scrub-pct {
+  color: var(--cpcap-cyan);
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(0, 212, 255, 0.4);
+}
+.cpcap-scrub-target { color: var(--cpcap-amber); }
+
+/* Status badges */
+.cpcap-status.cpcap-ok::before    { content: '✓ '; }
+.cpcap-status.cpcap-warn::before  { content: '◇ '; }
+.cpcap-status.cpcap-error::before { content: '✗ '; }
 
 /* Reduced motion: disable transitions/animations */
 @media (prefers-reduced-motion: reduce) {
@@ -270,4 +529,5 @@
     transition: none !important;
     animation: none !important;
   }
+  .cpcap-decoder-display::before { display: none; }
 }

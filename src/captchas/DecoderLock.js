@@ -31,7 +31,10 @@ export class DecoderLock extends BaseCaptcha {
     this._statusEl = this.mount.querySelector('.cpcap-decoder-status');
     this._input = this.mount.querySelector('.cpcap-decoder-input');
 
-    this._input.addEventListener('input', () => this.emit('change'));
+    this._input.addEventListener('input', () => {
+      this._userTyped = true;  // останавливает петлю — пользователь уже печатает
+      this.emit('change');
+    });
 
     if (this._reduced) {
       this._display.textContent = this.state.expected;
@@ -41,10 +44,28 @@ export class DecoderLock extends BaseCaptcha {
       return;
     }
 
-    this._runDecode();
+    this._userTyped = false;
+    this._startLoop();
   }
 
-  _runDecode() {
+  // Петля: decode → пауза 2.5s → scramble → пауза 0.4s → decode → …
+  // Останавливается когда пользователь начал печатать.
+  _startLoop() {
+    if (this._destroyed || this._userTyped) return;
+    this._statusEl.textContent = 'decoding…';
+    this._statusEl.style.color = '';
+    this._runDecode(() => {
+      this._timer = setTimeout(() => {
+        if (this._destroyed || this._userTyped) return;
+        this._runScramble(() => {
+          this._timer = setTimeout(() => this._startLoop(), 400);
+        });
+      }, 2500);
+    });
+  }
+
+  // Decode: символы открываются слева направо
+  _runDecode(onComplete) {
     const word = this.state.expected;
     const noise = this.state.noise;
     let revealed = 0;
@@ -52,11 +73,7 @@ export class DecoderLock extends BaseCaptcha {
       if (this._destroyed) return;
       let out = '';
       for (let i = 0; i < word.length; i++) {
-        if (i < revealed) {
-          out += word.charAt(i);
-        } else {
-          out += noise.charAt(Math.floor(Math.random() * noise.length));
-        }
+        out += i < revealed ? word.charAt(i) : noise.charAt(Math.floor(Math.random() * noise.length));
       }
       this._display.textContent = out;
       if (revealed < word.length) {
@@ -67,6 +84,30 @@ export class DecoderLock extends BaseCaptcha {
         this._statusEl.style.color = 'var(--cpcap-cyan)';
         this.state.locked = true;
         this.emit('lock');
+        if (onComplete) onComplete();
+      }
+    };
+    tick();
+  }
+
+  // Scramble: символы прячутся справа налево
+  _runScramble(onComplete) {
+    const word = this.state.expected;
+    const noise = this.state.noise;
+    this.state.locked = false;
+    let visible = word.length;
+    const tick = () => {
+      if (this._destroyed) return;
+      let out = '';
+      for (let i = 0; i < word.length; i++) {
+        out += i < visible ? word.charAt(i) : noise.charAt(Math.floor(Math.random() * noise.length));
+      }
+      this._display.textContent = out;
+      if (visible > 0) {
+        visible--;
+        this._timer = setTimeout(tick, 40);
+      } else {
+        if (onComplete) onComplete();
       }
     };
     tick();

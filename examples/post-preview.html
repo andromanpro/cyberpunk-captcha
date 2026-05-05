@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>cyberpunk-captcha preview</title>
+<style>
+body { background: #0a0e1a; color: #e6edf3; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 32px 20px; max-width: 760px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+h1, h2, h3 { font-family: 'Manrope', 'Inter', sans-serif; color: #e6edf3; }
+h1 { font-weight: 800; margin: 0 0 24px; background: linear-gradient(135deg, #00d4ff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 32px; }
+h2 { margin-top: 40px; color: #00d4ff; border-top: 1px dashed rgba(0, 212, 255, 0.2); padding-top: 18px; }
+h3 { color: #00d4ff; }
+p { color: #d3d8de; margin: 14px 0; }
+a { color: #00d4ff; }
+code { font-family: 'JetBrains Mono', 'Courier New', monospace; background: rgba(0, 212, 255, 0.08); padding: 1px 6px; border-radius: 3px; font-size: 0.92em; }
+hr { border: 0; border-top: 1px dashed rgba(0, 212, 255, 0.2); margin: 36px 0; }
+strong { color: #ffffff; }
+em { color: #ffaa20; font-style: normal; }
+</style></head><body>
+
+<h1>Шесть киберпанковых капч (или как мне надоели картинки с автомобилями)</h1>
+
+<style>
+/* ─── cyberpunk-captcha shared styles ─── */
+/* cyberpunk-captcha — shared styles.
+ * Design language: cyan + magenta accents, monospace mono labels, glow shadows.
+ * All colors via CSS custom properties — override at .cpcap level for theming.
+ */
+
+.cpcap {
+  --cpcap-cyan: #00d4ff;
+  --cpcap-magenta: #ff40c0;
+  --cpcap-amber: #ffaa20;
+  --cpcap-signal-green: #00ff88;
+  --cpcap-hot: #ff4060;
+  --cpcap-bg: #0a0e1a;
+  --cpcap-bg-alt: #131825;
+  --cpcap-text: #e6edf3;
+  --cpcap-text-dim: #b5bcc4;
+  --cpcap-text-muted: #6f7686;
+  --cpcap-border: #2a3142;
+  --cpcap-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--cpcap-bg-alt);
+  border: 1px solid rgba(0, 212, 255, 0.18);
+  border-radius: 4px;
+  padding: 22px 18px 18px;
+  color: var(--cpcap-text);
+  margin: 16px 0;
+  position: relative;
+  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.08), inset 0 0 36px rgba(0, 212, 255, 0.025);
+}
+/* Corner brackets — 4 L-shapes на углах (8 background layers форм. 4 пары линий) */
+.cpcap::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, var(--cpcap-cyan), var(--cpcap-cyan)) top    left  / 14px 1px no-repeat,
+    linear-gradient(to bottom, var(--cpcap-cyan), var(--cpcap-cyan)) top    left  / 1px 14px no-repeat,
+    linear-gradient(to right, var(--cpcap-cyan), var(--cpcap-cyan)) top    right / 14px 1px no-repeat,
+    linear-gradient(to bottom, var(--cpcap-cyan), var(--cpcap-cyan)) top    right / 1px 14px no-repeat,
+    linear-gradient(to right, var(--cpcap-cyan), var(--cpcap-cyan)) bottom left  / 14px 1px no-repeat,
+    linear-gradient(to bottom, var(--cpcap-cyan), var(--cpcap-cyan)) bottom left  / 1px 14px no-repeat,
+    linear-gradient(to right, var(--cpcap-cyan), var(--cpcap-cyan)) bottom right / 14px 1px no-repeat,
+    linear-gradient(to bottom, var(--cpcap-cyan), var(--cpcap-cyan)) bottom right / 1px 14px no-repeat;
+  opacity: 0.6;
+  z-index: 1;
+}
+/* Subtle scanlines overlay на фоне всей капчи */
+.cpcap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 212, 255, 0.025) 0px,
+    rgba(0, 212, 255, 0.025) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  border-radius: inherit;
+  z-index: 0;
+  mix-blend-mode: screen;
+}
+.cpcap > * { position: relative; z-index: 2; }
+
+.cpcap-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--cpcap-cyan);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed rgba(0, 212, 255, 0.15);
+}
+.cpcap-label > span:first-child {
+  text-shadow: 0 0 6px rgba(0, 212, 255, 0.35);
+}
+/* Pulsing dot before label first span */
+.cpcap-label > span:first-child::before {
+  content: '●';
+  display: inline-block;
+  margin-right: 6px;
+  color: var(--cpcap-signal-green);
+  text-shadow: 0 0 6px var(--cpcap-signal-green);
+  animation: cpcapPulse 1.6s ease-in-out infinite;
+  vertical-align: middle;
+  font-size: 10px;
+}
+@keyframes cpcapPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(1.3); }
+}
+
+.cpcap-status {
+  text-align: center;
+  margin-top: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--cpcap-text-muted);
+  min-height: 18px;
+}
+.cpcap-status.cpcap-ok    { color: var(--cpcap-cyan); }
+.cpcap-status.cpcap-warn  { color: var(--cpcap-amber); }
+.cpcap-status.cpcap-error { color: var(--cpcap-hot); }
+
+.cpcap-input {
+  display: block;
+  width: 100%;
+  background: var(--cpcap-bg);
+  color: var(--cpcap-text);
+  border: 1px solid var(--cpcap-border);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.cpcap-input:focus {
+  border-color: var(--cpcap-cyan);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.08);
+}
+
+.cpcap-button {
+  background: transparent;
+  border: 1px solid var(--cpcap-cyan);
+  color: var(--cpcap-cyan);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+.cpcap-button:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.1);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.4);
+}
+
+/* ── DecoderLock ── */
+.cpcap-decoder-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  letter-spacing: 0.12em;
+  text-align: center;
+  padding: 18px 12px;
+  min-height: 32px;
+  background:
+    radial-gradient(ellipse at center, rgba(0, 212, 255, 0.06), transparent 70%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4)),
+    var(--cpcap-bg);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 4px;
+  margin: 6px 0 12px;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.35);
+  color: var(--cpcap-text);
+}
+.cpcap-decoder-display::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cpcap-cyan), transparent);
+  box-shadow: 0 0 12px var(--cpcap-cyan);
+  animation: cpcapDecoderBeam 2.2s linear infinite;
+  pointer-events: none;
+  top: 0;
+}
+@keyframes cpcapDecoderBeam {
+  0%   { top: -2px; opacity: 0.8; }
+  90%  { opacity: 0.8; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* ── LavaOrbTemp ── */
+.cpcap-lava-target {
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: rgba(0, 212, 255, 0.08);
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+}
+.cpcap-lava-wrap {
+  padding: 70px 20px 90px;
+  display: block;
+  position: relative;
+}
+.cpcap-lava-wrap::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 6px; right: 6px;
+  height: 26px;
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(0, 212, 255, 0.15) 0px,
+    rgba(0, 212, 255, 0.15) 1px,
+    transparent 1px,
+    transparent 10%
+  );
+  pointer-events: none;
+  opacity: 0.5;
+}
+.cpcap-lava-wrap input[type=range] {
+  width: 100%;
+  display: block;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  background: linear-gradient(90deg, #00d4ff 0%, #6699ff 20%, #ffaa20 50%, #ff6633 75%, #ff2040 100%);
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.3), 0 0 14px rgba(255, 64, 96, 0.25);
+  outline: none;
+  cursor: grab;
+}
+.cpcap-lava-wrap input[type=range]:active { cursor: grabbing; }
+.cpcap-lava-wrap input[type=range]:focus {
+  box-shadow: 0 0 0 2px var(--cpcap-cyan), 0 0 20px rgba(0, 212, 255, 0.4);
+}
+.cpcap-lava-wrap input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 60px;
+  height: 60px;
+  background: transparent;
+  border: 0;
+  cursor: grab;
+  opacity: 0;
+}
+.cpcap-lava-wrap input[type=range]::-moz-range-thumb {
+  width: 60px;
+  height: 60px;
+  background: transparent;
+  border: 0;
+  cursor: grab;
+  opacity: 0;
+}
+.cpcap-lava-wrap input[type=range]::-moz-range-track {
+  height: 8px;
+  background: transparent;
+  border: 0;
+}
+.cpcap-lava-bands {
+  display: grid;
+  grid-template-columns: 16% 19% 19% 19% 27%;
+  gap: 0;
+  margin-top: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--cpcap-text-muted);
+  text-align: center;
+}
+.cpcap-lava-bands span { padding: 2px 0; border-top: 1px dashed rgba(0, 212, 255, 0.15); }
+.cpcap-lava-readout {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+.cpcap-lava-readout .side { color: var(--cpcap-text-muted); }
+.cpcap-lava-readout .current {
+  color: var(--cpcap-cyan);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 4px 12px;
+  border: 1px solid var(--cpcap-cyan);
+  border-radius: 3px;
+  background: rgba(0, 212, 255, 0.08);
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+}
+
+/* ── SequenceDecode ── */
+.cpcap-seq-pad {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  max-width: 320px;
+  margin: 12px auto;
+}
+.cpcap-seq-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  aspect-ratio: 1.6 / 1;
+  background:
+    linear-gradient(135deg, rgba(0, 212, 255, 0.04), rgba(0, 212, 255, 0)),
+    var(--cpcap-bg);
+  border: 1px solid var(--cpcap-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s, background 0.15s;
+  color: var(--cpcap-text);
+  position: relative;
+  overflow: hidden;
+}
+.cpcap-seq-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0.4;
+}
+.cpcap-seq-btn[data-color=cyan]   { color: #00d4ff; }
+.cpcap-seq-btn[data-color=pink]   { color: #ff40c0; }
+.cpcap-seq-btn[data-color=amber]  { color: #ffaa20; }
+.cpcap-seq-btn[data-color=green]  { color: #00ff88; }
+.cpcap-seq-btn:hover {
+  border-color: currentColor;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.04), inset 0 0 14px rgba(0, 212, 255, 0.05);
+}
+.cpcap-seq-btn.flash {
+  box-shadow:
+    0 0 32px currentColor,
+    inset 0 0 24px rgba(255, 255, 255, 0.15);
+  border-color: currentColor;
+  transform: scale(1.04);
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.12), transparent 70%),
+    var(--cpcap-bg);
+}
+.cpcap-seq-icon {
+  display: inline-flex;
+  filter: drop-shadow(0 0 6px currentColor);
+}
+.cpcap-seq-icon svg { display: block; }
+.cpcap-seq-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: currentColor;
+  opacity: 0.75;
+}
+.cpcap-seq-progress {
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--cpcap-text-muted);
+  margin-top: 8px;
+  letter-spacing: 0.15em;
+}
+
+/* ── HoneypotTime ── */
+.cpcap-hp-debug {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1)),
+    var(--cpcap-bg);
+  border: 1px solid rgba(0, 212, 255, 0.18);
+  border-radius: 4px;
+  padding: 12px 14px;
+  position: relative;
+  overflow: hidden;
+}
+.cpcap-hp-debug::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 212, 255, 0.04) 0px,
+    rgba(0, 212, 255, 0.04) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+}
+.cpcap-hp-debug > div { position: relative; z-index: 2; padding: 2px 0; }
+.cpcap-hp-honey {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  opacity: 0;
+  height: 0;
+  width: 0;
+}
+
+/* ── CodeBug1C ── */
+.cpcap-bug-snippets {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.cpcap-bug-snippet {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.25), transparent),
+    var(--cpcap-bg);
+  border: 1px solid var(--cpcap-border);
+  border-radius: 4px;
+  padding: 12px 14px 12px 44px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  color: var(--cpcap-text);
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  position: relative;
+  counter-increment: cpcap-snippet;
+}
+.cpcap-bug-snippet::before {
+  content: counter(cpcap-snippet, decimal-leading-zero);
+  position: absolute;
+  left: 10px;
+  top: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--cpcap-cyan);
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+}
+.cpcap-bug-snippet::after {
+  content: '';
+  position: absolute;
+  left: 28px; top: 12px; bottom: 12px;
+  width: 1px;
+  background: rgba(0, 212, 255, 0.15);
+}
+.cpcap-bug-snippets { counter-reset: cpcap-snippet; }
+.cpcap-bug-snippet:hover {
+  border-color: var(--cpcap-cyan);
+  background:
+    linear-gradient(180deg, rgba(0, 212, 255, 0.06), rgba(0, 212, 255, 0.02)),
+    var(--cpcap-bg);
+  transform: translateX(2px);
+}
+.cpcap-bug-snippet.cpcap-locked-correct {
+  border-color: var(--cpcap-signal-green);
+  background: rgba(0, 255, 136, 0.08);
+  box-shadow: 0 0 16px rgba(0, 255, 136, 0.2);
+}
+.cpcap-bug-snippet.cpcap-locked-correct::before { color: var(--cpcap-signal-green); opacity: 1; }
+.cpcap-bug-snippet.cpcap-locked-wrong {
+  border-color: var(--cpcap-hot);
+  background: rgba(255, 64, 96, 0.08);
+  animation: cpcapShake 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.cpcap-bug-snippet.cpcap-locked-wrong::before { color: var(--cpcap-hot); opacity: 1; }
+@keyframes cpcapShake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-3px); }
+  75%      { transform: translateX(3px); }
+}
+
+/* ── ScrubReveal ── */
+.cpcap-scrub-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 26px;
+  letter-spacing: 0.18em;
+  text-align: center;
+  padding: 18px 12px;
+  min-height: 36px;
+  background:
+    radial-gradient(ellipse at center, rgba(0, 212, 255, 0.06), transparent 70%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1)),
+    var(--cpcap-bg);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 4px;
+  margin-bottom: 14px;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+  color: var(--cpcap-text);
+  position: relative;
+  overflow: hidden;
+}
+.cpcap-scrub-display::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 212, 255, 0.05) 0px,
+    rgba(0, 212, 255, 0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+}
+.cpcap-scrub-slider {
+  width: 100%;
+  accent-color: var(--cpcap-cyan);
+  height: 4px;
+}
+.cpcap-scrub-readout {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--cpcap-text-muted);
+  margin-top: 8px;
+  letter-spacing: 0.1em;
+}
+.cpcap-scrub-pct {
+  color: var(--cpcap-cyan);
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(0, 212, 255, 0.4);
+}
+.cpcap-scrub-target { color: var(--cpcap-amber); }
+
+/* Status badges */
+.cpcap-status.cpcap-ok::before    { content: '✓ '; }
+.cpcap-status.cpcap-warn::before  { content: '◇ '; }
+.cpcap-status.cpcap-error::before { content: '✗ '; }
+
+/* Reduced motion: disable transitions/animations */
+@media (prefers-reduced-motion: reduce) {
+  .cpcap, .cpcap * {
+    transition: none !important;
+    animation: none !important;
+  }
+  .cpcap-decoder-display::before { display: none; }
+}
+
+/* ─── demo block wrapper ─── */
+.cap-demo-block{margin:18px 0 24px}
+.cap-demo-actions{display:flex;gap:8px;margin-top:8px}
+.cap-demo-actions button{background:transparent;border:1px solid #00d4ff;color:#00d4ff;font-family:'JetBrains Mono',monospace;font-size:11px;padding:6px 14px;border-radius:4px;cursor:pointer;letter-spacing:0.12em;text-transform:uppercase}
+.cap-demo-actions button:hover{background:rgba(0,212,255,0.1)}
+.cap-demo-verdict{margin-top:8px;padding:8px 12px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.05em;display:none}
+.cap-demo-verdict.show{display:block}
+.cap-demo-verdict.pass{background:rgba(0,255,136,0.08);border:1px solid #00ff88;color:#00ff88}
+.cap-demo-verdict.fail{background:rgba(255,64,96,0.08);border:1px solid #ff4060;color:#ff4060}
+</style>
+
+<p>Знаете эту штуку от гугла, которая просит кликнуть на все картинки с автомобилями? Иногда не загружается. Иногда загружается, но ничего не отвечает. Иногда отвечает, но в коде ошибка. И главное — <strong>выглядит</strong> как стерильная гугловая галочка. На моём блоге, где буквы морфятся из шумовых символов в надписи на главной, такая штука смотрится примерно как «Введите номер мобильного телефона» в подвале Cyberpunk 2077.</p>
+<p>Поэтому я сел и сделал шесть своих. Не потому что у гугла плохая защита — она нормально работает. А потому что хотел: посетитель добрался до формы комментария, написал текст, и в момент проверки «ты точно не робот?» продолжал чувствовать что он на киберпанк-блоге, а не на госуслугах.</p>
+<p>Все шесть <strong>прямо в этой статье</strong> ниже — рабочие, можно потыкать. Кнопка «Проверить» покажет вердикт, «Заново» — перезапустит.</p>
+<h2>Декодер</h2>
+<p>Символы хаотично перемешаны, потом по одному встают на свои места. Через секунду-полторы появляется нормальное слово — введи его в поле. Робот не выполняет анимацию в браузере, итогового слова не видит, не пройдёт.</p>
+<div class="cap-demo-block">
+  <div id="demo-decoder"></div>
+  <div class="cap-demo-actions">
+    <button data-demo="decoder" data-action="validate">Проверить</button>
+    <button data-demo="decoder" data-action="replay">Заново</button>
+  </div>
+  <div class="cap-demo-verdict" data-for="decoder"></div>
+</div>
+
+<h2>Лава-шар с температурой</h2>
+<p>Один ползунок, к которому прицеплен мой же огненный шар (отдельная библиотека, я её делал давно). Тащишь — шар меняет цвет от ледяного синего к раскалённому красному. Над ним пишет «попади в <code>тёплый</code>» — нужно поставить ползунок в правильный диапазон.</p>
+<div class="cap-demo-block">
+  <div id="demo-lava"></div>
+  <div class="cap-demo-actions">
+    <button data-demo="lava" data-action="validate">Проверить</button>
+    <button data-demo="lava" data-action="replay">Заново</button>
+  </div>
+  <div class="cap-demo-verdict" data-for="lava"></div>
+</div>
+
+<h2>Повтори последовательность</h2>
+<p>Четыре светящиеся кнопки, пара из них вспыхивает по очереди. Запомнил порядок — повтори, кликая в том же порядке. Как в детской игре «Симон» из 80-х. Если включён режим «убрать анимации» (для чувствительных к мерцанию) — вместо вспышек просто пишется список «1.▴ 2.▶ 3.◀».</p>
+<div class="cap-demo-block">
+  <div id="demo-seq"></div>
+  <div class="cap-demo-actions">
+    <button data-demo="seq" data-action="validate">Проверить</button>
+    <button data-demo="seq" data-action="replay">Заново</button>
+  </div>
+  <div class="cap-demo-verdict" data-for="seq"></div>
+</div>
+
+<h2>Невидимая ловушка</h2>
+<p>Скрытое поле, которое заполняют только роботы (они автоматически пихают значения везде куда могут), плюс таймер: если посетитель отправил форму через секунду после открытия страницы — это робот. Никаких проверок для человека, всё происходит само. Ловит около 80% массовых ботов, которые тупо обходят формы скриптом.</p>
+<p>В этом demo ниже виден отладочный экранчик: «поле пустое: ✓», «прошло секунд: N», «вердикт: ЧЕЛОВЕК / РОБОТ». В реальном использовании это всё скрыто. Кнопка «прикинуться роботом» симулирует поведение бота.</p>
+<div class="cap-demo-block">
+  <div id="demo-hp"></div>
+  <div class="cap-demo-actions">
+    <button data-demo="hp" data-action="validate">Проверить</button>
+    <button data-demo="hp" data-action="replay">Заново</button>
+  </div>
+  <div class="cap-demo-verdict" data-for="hp"></div>
+</div>
+
+<h2>Найди ошибку в 1С-коде</h2>
+<p>Три фрагмента кода 1С, в одном — синтаксическая ошибка (пропущен <code>КонецПроцедуры</code>, лишняя скобка, незакрытая кавычка). Кликни на сломанный. Подходит для блога про 1С — обычные роботы не разбирают синтаксис конкретного языка, программисты замечают за пять секунд.</p>
+<div class="cap-demo-block">
+  <div id="demo-bug"></div>
+  <div class="cap-demo-actions">
+    <button data-demo="bug" data-action="validate">Проверить</button>
+    <button data-demo="bug" data-action="replay">Заново</button>
+  </div>
+  <div class="cap-demo-verdict" data-for="bug"></div>
+</div>
+
+<h2>Точная позиция</h2>
+<p>Ползунок 0–100%. Слово видно только в узкой полоске (например, между 67 и 73%) — выходишь за неё, и оно снова рассыпается на шум. Поймай нужную точку, прочти слово, введи. Главное — нельзя «дотащить до конца и победить», нужна точность.</p>
+<div class="cap-demo-block">
+  <div id="demo-scrub"></div>
+  <div class="cap-demo-actions">
+    <button data-demo="scrub" data-action="validate">Проверить</button>
+    <button data-demo="scrub" data-action="replay">Заново</button>
+  </div>
+  <div class="cap-demo-verdict" data-for="scrub"></div>
+</div>
+
+<h2>Декодер — мой любимый, и почему он чуть не убил меня</h2>
+<p>Сначала я думал что декодер будет самой простой капчей. Мол, у меня уже на главной такая же штука морфит логотип сайта, скопирую логику за полчаса и пойду пить кофе. <strong>Ага.</strong></p>
+<p>Первая попытка — каждые 60 миллисекунд один символ становится на место, остальные продолжают мерцать случайными. На главной с короткой латинской надписью это работает идеально. На странице поста, где заголовок русский (например, «Когда заниматься 1С становится скучно»), всё посыпалось.</p>
+<p>Что не так. Шумовой набор у меня был из латинских букв и блочных символов (<code>█▓▒░#@$</code>). Реальный текст — кириллица. На каждом срабатывании посетитель видел как <strong>латинская буква превращается в русскую</strong>. Это считывается как «сначала был английский текст, потом резко переключился на русский». Запутанно.</p>
+<p>Добавил кириллицу в шум. Поправил. Запустил. Через час открываю длинный заголовок, который переносится на две строки, и вижу как <strong>весь текст подпрыгивает</strong> при каждой смене символа. Что? Открываю инструменты браузера — оказалось, шрифт у шумовых символов один (моноширинный, все буквы одинаковой ширины), а у реального заголовка другой (пропорциональный, разные буквы — разной ширины). Каждый раз когда символ меняется, ширина текста меняется тоже, и перенос на новую строку падает в другом месте. <strong>Весь блок переколбашивается.</strong></p>
+<p>Лечил тремя итерациями.</p>
+<p>Сначала — заставил текст не переноситься во время мерцания, после фиксации символа разрешил снова. Перестало прыгать построчно. Но в момент когда декодер заканчивает, текст резко превращается из одной строки в две, и весь контент ниже заголовка съезжает на 50 пикселей вниз. Тоже плохо.</p>
+<p>Потом — измерял итоговую высоту заголовка заранее и фиксировал её через CSS. Декодер работает внутри коробки фиксированной высоты, ничего не двигается. Сработало, но шрифт у декодера всё ещё был моноширинный, и в момент финала текст резко становился узким (пропорциональный шрифт уже). Визуально — вспышка, текст перепрыгивает.</p>
+<p>Финал — <strong>просто использовать тот же шрифт что и в финале</strong>. И убрать <code>█▓▒░|</code> из шумовых символов, потому что эти штуки в нашем шрифте не существуют, и браузер подставлял их из моноширинного — отсюда и разница ширин.</p>
+<p>Потерял немного «блочного» киберпанк-настроения. Получил стабильность. Оно того стоило.</p>
+<p>После недели мучений я в итоге <strong>убрал декодер с заголовков постов вообще</strong> и оставил только на главной. Слишком много граблей для одной фишки. Декодер как <strong>капча</strong> — норм, там короткое слово в маленькой коробочке, проблем с переносом строк нет.</p>
+<h2>Лава-шар — переиспользовал своё же</h2>
+<p>У меня есть npm-пакет <code>@andromanpro/lava-orb</code> — огненный шарик, который цепляется к ползунку и меняет цвет в зависимости от позиции. Делал давно для другого поста, опубликовал, потом просто лежал.</p>
+<p>Капча написалась за час. Цепляю шар к ползунку, проверка на «попал в нужный диапазон» при отправке. Готово.</p>
+<p>Что хочется отметить — стандартный ползунок в браузере <strong>уродлив</strong>. Серая полоска и круглый кружок. Стилизация в CSS — отдельный мини-ад: для каждого браузера свои псевдо-селекторы (для хрома один, для огнелиса другой), и каждый со своими тонкостями. Я сделал градиент полоски от ледяного синего к огненному красному (через золотисто-жёлтый посередине), а сам кружок сделал прозрачным, потому что сверху на него всё равно ложится мой огненный шар. Под полоской — отметки температурных зон с подписями.</p>
+<p>Если шар по какой-то причине не загрузился — градиентная полоска остаётся и ползунок продолжает работать. Защита не отваливается.</p>
+<h2>Точная позиция — почему «до конца дотащил» это скучно</h2>
+<p>Сначала написал тривиально: тащи ползунок до 100%, тогда слово полностью видно. На отправке проверка «значение &gt;= 100». Готово.</p>
+<p>Запустил, попробовал. Скучно. Каждый раз одно и то же — таскаешь до конца, читаешь, вводишь. Никакого вызова — «дотащил — прошёл».</p>
+<p>Подумал. Случайная цель? Каждый раз новое значение, например 60–89, проходишь если ползунок выше или равно. Лучше, но всё равно посетитель может перетащить до 100% и пройти. Никакой точности не нужно.</p>
+<p>Финальная версия — <strong>узкая полоска</strong>: цель ±3%. Если ползунок в окне (например 67–73 при цели 70) — слово полностью видно. Перетащил выше или ниже — слово плавно растворяется обратно в шум. На отправке проверяю что ползунок в окне И слово введено правильно.</p>
+<p>Получилось то что хотелось — <strong>точность</strong>. Не до конца, не до начала, а в <strong>узкую полоску</strong>. Робот может попробовать перебрать значения и наблюдать за тем что показывается, но это уже сильно дороже простого «тащи до конца».</p>
+<h2>Чему научился</h2>
+<p><strong>Резкая анимация — это не киберпанк, это нервы.</strong> Изначально все мои капчи использовали «ступенчатую» анимацию (вместо плавной — рывками, как в старых играх). Думал, придаст «цифровой глитч». Один из первых посетителей сказал «нервно появляется, плохо». Переписал всё на плавные переходы. Киберпанк-настроение осталось через <strong>цвет и свечение</strong>, не через дрожь.</p>
+<p><strong>Режим «убрать анимации» — обязательно.</strong> Один посетитель открыл сайт с включённым системным предпочтением <code>prefers-reduced-motion: reduce</code> (для людей чувствительных к мерцанию), и у него всё пульсировало через одно место. Потратил отдельную итерацию на запасные варианты: декодер без морфа, Симон без вспышек, точная позиция без плавных переходов. Должно было быть с самого начала, не как бонус.</p>
+<p><strong>Удобство против защиты — нелинейный размен.</strong> Самое удобное (невидимая ловушка) одновременно блокирует ~80% массовых ботов. Самое сложное (сломанный 1С-код) блокирует 99% не-1С аудитории, но и легитимных посетителей с другим бэкграундом тоже. Лучшая стратегия — <strong>слоить</strong>: невидимая ловушка плюс одна видимая на выбор. Разные типы атак ловятся разными слоями.</p>
+<p><strong>npm-пакет — не магия.</strong> Из шести капч получился маленький репозиторий, около 22 килобайт в сжатом виде на все шесть, чистый JavaScript, без зависимостей (огненный шар опционален). Сборка через одну простую команду. Без TypeScript, без модных фреймворков, без сложных конфигов. Можно встроить в любой блог — WordPress, Astro, обычный HTML — одной строчкой.</p>
+<h2>Что дальше</h2>
+<p>В планах — выложить пакет в npm под именем <code>@andromanpro/cyberpunk-captcha</code>, поднять страницу с живыми примерами на GitHub Pages, и подключить ротацию (случайный выбор из шести при каждом обновлении страницы) к реальной форме комментариев на моём блоге.</p>
+<p>Если зайдёт — может быть выпущу обёртки для React и Vue. Но сначала чистый JavaScript работает — это база, остальное — украшения.</p>
+<p>Если у тебя есть идея для <strong>седьмой</strong> капчи в этом стиле — пиши в комментариях. Сейчас там стоит невидимая ловушка, так что если ты человек — просто заполни поля, подожди три секунды, и отправь. Если ты робот — извини, прохода нет.</p>
+<hr />
+<p>GitHub: <a href="https://github.com/andromanpro/cyberpunk-captcha">github.com/andromanpro/cyberpunk-captcha</a> (скоро)</p>
+<p>Живые примеры (отдельный сайт): <a href="https://andromanpro.github.io/cyberpunk-captcha">andromanpro.github.io/cyberpunk-captcha</a> (скоро)</p>
+<p>Установка: <code>npm install @andromanpro/cyberpunk-captcha</code> (скоро)</p>
+<script src="https://unpkg.com/@andromanpro/lava-orb@0.1.2/dist/lava-orb.js"></script>
+<script>
+var CyberpunkCaptcha=(()=>{var b=Object.defineProperty;var T=Object.getOwnPropertyDescriptor;var A=Object.getOwnPropertyNames;var O=Object.prototype.hasOwnProperty;var B=(i,t,e)=>t in i?b(i,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):i[t]=e;var R=(i,t)=>{for(var e in t)b(i,e,{get:t[e],enumerable:!0})},H=(i,t,e,a)=>{if(t&&typeof t=="object"||typeof t=="function")for(let s of A(t))!O.call(i,s)&&s!==e&&b(i,s,{get:()=>t[s],enumerable:!(a=T(t,s))||a.enumerable});return i};var D=i=>H(b({},"__esModule",{value:!0}),i);var n=(i,t,e)=>B(i,typeof t!="symbol"?t+"":t,e);var j={};R(j,{BaseCaptcha:()=>r,CaptchaRotation:()=>x,CodeBug1C:()=>m,DecoderLock:()=>h,HoneypotTime:()=>u,LavaOrbTemp:()=>l,ScrubReveal:()=>f,SequenceDecode:()=>d});function p(i){return i[Math.floor(Math.random()*i.length)]}function k(i,t){return Math.floor(Math.random()*(t-i+1))+i}function g(i){return String(i).replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[t])}function C(){return typeof window!="undefined"&&window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches}function S(){let i=new Map;return{on(t,e){return i.has(t)||i.set(t,new Set),i.get(t).add(e),()=>{var a;return(a=i.get(t))==null?void 0:a.delete(e)}},off(t,e){var a;(a=i.get(t))==null||a.delete(e)},emit(t,...e){let a=i.get(t);if(a)for(let s of a)try{s(...e)}catch(o){console.error(`[cyberpunk-captcha] handler for "${t}" threw:`,o)}},clear(){i.clear()}}}var r=class{constructor(t,e={}){if(!t||!(t instanceof HTMLElement))throw new Error("[cyberpunk-captcha] mount element required");this.mount=t,this.options=e,this.state={},this._emitter=S(),this._destroyed=!1,this._reduced=C(),this.mount.classList.add("cpcap",`cpcap-${this.constructor.id||"base"}`),this.render()}render(){this.mount.innerHTML='<div class="cpcap-error">BaseCaptcha.render() not implemented</div>'}checkValid(){return{pass:!1,message:"BaseCaptcha.checkValid() not implemented"}}isValid(){if(this._destroyed)return!1;let t=this.checkValid();return this._emitter.emit(t.pass?"pass":"fail",t),typeof this.options.onValidate=="function"&&this.options.onValidate(t.pass,t),t.pass}validate(){return this._destroyed?{pass:!1,message:"destroyed"}:this.checkValid()}replay(){this._destroyed||(this.state={},this.mount.innerHTML="",this.render(),this._emitter.emit("replay"))}destroy(){this._destroyed||(this._destroyed=!0,this.mount.innerHTML="",this.mount.classList.remove("cpcap",`cpcap-${this.constructor.id||"base"}`),this._emitter.clear())}on(t,e){return this._emitter.on(t,e)}off(t,e){this._emitter.off(t,e)}emit(t,...e){if(this._emitter.emit(t,...e),t==="change"&&typeof this.options.onChange=="function")try{this.options.onChange(...e)}catch(a){}}};n(r,"name","BaseCaptcha");var N=["ANDROMAN","CYBERPUNK","SIGNAL","MATRIX","NEURAL","AVATAR","HACKER","UPLINK","DECODER","KINDR"],V="#@$%&*+=!?><~:;.-_ABCDEF\u0410\u0411\u0412\u0413\u0414\u0415\u0416\u0418\u041A\u041B\u041C\u041D\u041E\u041F\u0430\u0431\u0432\u0433\u0434\u0435\u0436\u0438\u043A\u043B\u043C\u043D\u043E\u043F0123456789",h=class extends r{render(){let t=this.options.pool||N,e=this.options.noise||V,a=this.options.stepMs||60;if(this.state.expected=p(t),this.state.locked=!1,this.state.noise=e,this.state.stepMs=a,this.mount.innerHTML=`
+      <div class="cpcap-label">
+        <span>// SIGNAL DECODER</span>
+        <span class="cpcap-decoder-status">decoding\u2026</span>
+      </div>
+      <div class="cpcap-decoder-display"></div>
+      <input type="text" class="cpcap-input cpcap-decoder-input" autocomplete="off" placeholder="type the unlocked signal" />
+    `,this._display=this.mount.querySelector(".cpcap-decoder-display"),this._statusEl=this.mount.querySelector(".cpcap-decoder-status"),this._input=this.mount.querySelector(".cpcap-decoder-input"),this._input.addEventListener("input",()=>this.emit("change")),this._reduced){this._display.textContent=this.state.expected,this._statusEl.textContent="\u2713 locked",this._statusEl.style.color="var(--cpcap-cyan)",this.state.locked=!0;return}this._runDecode()}_runDecode(){let t=this.state.expected,e=this.state.noise,a=0,s=()=>{if(this._destroyed)return;let o="";for(let c=0;c<t.length;c++)c<a?o+=t.charAt(c):o+=e.charAt(Math.floor(Math.random()*e.length));this._display.textContent=o,a<t.length?(a++,this._timer=setTimeout(s,this.state.stepMs)):(this._statusEl.textContent="\u2713 locked",this._statusEl.style.color="var(--cpcap-cyan)",this.state.locked=!0,this.emit("lock"))};s()}destroy(){this._timer&&clearTimeout(this._timer),super.destroy()}checkValid(){if(!this.state.locked)return{pass:!1,message:"wait for signal lock"};let t=(this._input.value||"").trim().toUpperCase();return t?t===this.state.expected?{pass:!0,message:`signal accepted: ${this.state.expected}`}:{pass:!1,message:`wrong signal: \xAB${g(t)}\xBB \u2260 \xAB${this.state.expected}\xBB`}:{pass:!1,message:"enter the unlocked signal"}}};n(h,"id","decoder-lock"),n(h,"name","Decoder Lock");var y=[{name:"ICE",min:0,max:15},{name:"COLD",min:16,max:35},{name:"WARM",min:36,max:55},{name:"HOT",min:56,max:75},{name:"FIRE",min:76,max:100}];function $(i){for(let t of y)if(i>=t.min&&i<=t.max)return t;return y[y.length-1]}var l=class extends r{render(){this.state.targetBand=y[Math.floor(Math.random()*y.length)],this.mount.innerHTML=`
+      <div class="cpcap-label">
+        <span>// SET TEMPERATURE TO:</span>
+        <span class="cpcap-lava-target" style="color: var(--cpcap-cyan); font-weight: 700;"></span>
+      </div>
+      <div class="cpcap-lava-wrap">
+        <input type="range" class="cpcap-lava-slider" min="0" max="100" value="50" step="1" />
+        <div class="cpcap-lava-bands">
+          <span>ICE</span><span>COLD</span><span>WARM</span><span>HOT</span><span>FIRE</span>
+        </div>
+      </div>
+      <div class="cpcap-lava-readout">
+        <span class="side">0%</span>
+        <span class="current">50% \xB7 WARM</span>
+        <span class="side">100%</span>
+      </div>
+      <div class="cpcap-status"></div>
+    `,this._slider=this.mount.querySelector(".cpcap-lava-slider"),this._target=this.mount.querySelector(".cpcap-lava-target"),this._current=this.mount.querySelector(".cpcap-lava-readout .current"),this._status=this.mount.querySelector(".cpcap-status"),this._target.textContent=`${this.state.targetBand.name} (${this.state.targetBand.min}%\u2013${this.state.targetBand.max}%)`,this._slider.addEventListener("input",()=>this._onChange(this._slider.value)),this._onChange(50);let t=this.options.lavaOrb||typeof window!="undefined"&&window.LavaOrb;if(t&&typeof t.attach=="function")try{this._orbHandle=t.attach(this._slider,{size:this.options.orbSize||70,detach:!1,onChange:e=>this._onChange(e)})}catch(e){console.warn("[cyberpunk-captcha] lava-orb attach failed, falling back to gradient slider:",e)}}_onChange(t){t=parseInt(t,10);let e=$(t);this._current.textContent=`${t}% \xB7 ${e.name}`,e.name===this.state.targetBand.name?(this._status.textContent="\u2713 in target band",this._status.className="cpcap-status cpcap-ok"):(this._status.textContent="adjust slider\u2026",this._status.className="cpcap-status"),this.emit("change",t)}destroy(){if(this._orbHandle&&typeof this._orbHandle.destroy=="function")try{this._orbHandle.destroy()}catch(t){}super.destroy()}checkValid(){let t=parseInt(this._slider.value,10),e=$(t);return e.name!==this.state.targetBand.name?{pass:!1,message:`temperature ${t}% (${e.name}) \u2260 target ${this.state.targetBand.name}`}:{pass:!0,message:`temperature: ${t}% \xB7 ${e.name}`}}};n(l,"id","lava-orb-temp"),n(l,"name","Lava-Orb Temperature");var q=["cyan","pink","amber","green"],U={cyan:'<svg viewBox="0 0 36 36" width="34" height="34" aria-hidden="true"><polygon points="18,4 31,11.5 31,24.5 18,32 5,24.5 5,11.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter"/><circle cx="18" cy="18" r="3" fill="currentColor"/></svg>',pink:'<svg viewBox="0 0 36 36" width="34" height="34" aria-hidden="true"><circle cx="18" cy="18" r="13" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="18" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="18" cy="18" r="3" fill="currentColor"/></svg>',amber:'<svg viewBox="0 0 36 36" width="34" height="34" aria-hidden="true"><polyline points="5,21 11,12 14,18 18,9 22,18 25,12 31,21" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square"/></svg>',green:'<svg viewBox="0 0 36 36" width="34" height="34" aria-hidden="true"><rect x="6" y="6" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"/><line x1="6" y1="14" x2="30" y2="14" stroke="currentColor" stroke-width="1.5"/><line x1="6" y1="22" x2="30" y2="22" stroke="currentColor" stroke-width="1.5"/><line x1="14" y1="6" x2="14" y2="30" stroke="currentColor" stroke-width="1.5"/><line x1="22" y1="6" x2="22" y2="30" stroke="currentColor" stroke-width="1.5"/></svg>'},M={cyan:"01_HEX",pink:"02_CORE",amber:"03_WAVE",green:"04_GRID"},L={cyan:"\u25A2HEX",pink:"\u25C9CORE",amber:"\u3030WAVE",green:"\u25A6GRID"},d=class extends r{render(){let t=this.options.minLen||3,e=this.options.maxLen||5,a=t+Math.floor(Math.random()*(e-t+1));this.state.sequence=[];for(let s=0;s<a;s++)this.state.sequence.push(p(q));this.state.userInput=[],this.state.locked=!1,this.state.solved=!1,this.mount.innerHTML=`
+      <div class="cpcap-label">
+        <span>// REPEAT THE SEQUENCE</span>
+        <span class="cpcap-seq-status">memorize\u2026</span>
+      </div>
+      <div class="cpcap-seq-pad">
+        ${q.map(s=>`<button type="button" class="cpcap-seq-btn" data-color="${s}" aria-label="${M[s]}"><span class="cpcap-seq-icon">${U[s]}</span><span class="cpcap-seq-tag">${M[s]}</span></button>`).join("")}
+      </div>
+      <div class="cpcap-seq-progress"></div>
+      <div style="text-align: center; margin-top: 8px;">
+        <button type="button" class="cpcap-button cpcap-seq-show">\u25B7 show again</button>
+      </div>
+    `,this._pad=this.mount.querySelector(".cpcap-seq-pad"),this._statusEl=this.mount.querySelector(".cpcap-seq-status"),this._progress=this.mount.querySelector(".cpcap-seq-progress"),this._showBtn=this.mount.querySelector(".cpcap-seq-show"),this._pad.addEventListener("click",s=>this._onPadClick(s)),this._showBtn.addEventListener("click",()=>this._showSequence()),this._showSequence()}_flash(t,e=350){let a=this._pad.querySelector(`.cpcap-seq-btn[data-color="${t}"]`);a&&(a.classList.add("flash"),setTimeout(()=>a.classList.remove("flash"),e))}_showSequence(){if(!this._destroyed){if(this.state.locked=!0,this.state.userInput=[],this._statusEl.textContent="watch the sequence\u2026",this._statusEl.style.color="var(--cpcap-text-muted)",this._progress.textContent="",this._reduced){this._progress.innerHTML="click in order: "+this.state.sequence.map((t,e)=>`${e+1}.${L[t]}`).join(" "),this.state.locked=!1,this._statusEl.textContent="repeat sequence";return}this.state.sequence.forEach((t,e)=>{setTimeout(()=>this._flash(t,400),600+e*600)}),setTimeout(()=>{this._destroyed||(this.state.locked=!1,this._statusEl.textContent="repeat sequence",this._progress.textContent=`0 / ${this.state.sequence.length}`)},600+this.state.sequence.length*600+200)}}_onPadClick(t){if(this.state.locked||this.state.solved)return;let e=t.target.closest(".cpcap-seq-btn");if(!e)return;let a=e.getAttribute("data-color");this._flash(a,200),this.state.userInput.push(a);let s=this.state.userInput.length-1;if(this.state.userInput[s]!==this.state.sequence[s]){this._statusEl.textContent="wrong, restart",this._statusEl.style.color="var(--cpcap-hot)",setTimeout(()=>this.replay(),800);return}this._progress.textContent=`${this.state.userInput.length} / ${this.state.sequence.length}`,this.emit("change",this.state.userInput.length),this.state.userInput.length===this.state.sequence.length&&(this.state.solved=!0,this._statusEl.textContent="\u2713 sequence matched",this._statusEl.style.color="var(--cpcap-cyan)")}checkValid(){return this.state.solved?{pass:!0,message:`pattern: ${this.state.sequence.map(t=>L[t]).join(" ")}`}:{pass:!1,message:"sequence not completed"}}};n(d,"id","sequence-decode"),n(d,"name","Sequence Decode");var u=class extends r{render(){this.state.minElapsed=this.options.minElapsed||3,this.state.fieldName=this.options.fieldName||"website2",this.state.startTime=Math.floor(Date.now()/1e3),this.state.showDebug=this.options.showDebug!==!1;let t=`
+      <input type="text" class="cpcap-hp-honey cpcap-hp-honey-input" name="${g(this.state.fieldName)}" tabindex="-1" autocomplete="off" />
+      <input type="hidden" class="cpcap-hp-ts" value="${this.state.startTime}" />
+    `;this.state.showDebug&&(t+=`
+        <div class="cpcap-label">
+          <span>// HONEYPOT STATUS \xB7 debug overlay</span>
+        </div>
+        <div class="cpcap-hp-debug"></div>
+        <div style="margin-top: 10px;">
+          <button type="button" class="cpcap-button cpcap-hp-pretend" style="border-color: var(--cpcap-hot); color: var(--cpcap-hot);">\u26A0 pretend bot</button>
+        </div>
+      `),this.mount.innerHTML=t,this._honey=this.mount.querySelector(".cpcap-hp-honey-input"),this._ts=this.mount.querySelector(".cpcap-hp-ts"),this._debug=this.mount.querySelector(".cpcap-hp-debug"),this._honey.addEventListener("input",()=>this.emit("change")),this.state.showDebug&&(this._pretend=this.mount.querySelector(".cpcap-hp-pretend"),this._pretend.addEventListener("click",()=>{this._honey.value="http://spam-site.example.com",this._ts.value=Math.floor(Date.now()/1e3),this._updateDebug()}),this._timer=setInterval(()=>this._updateDebug(),250),this._updateDebug())}_updateDebug(){if(!this._debug)return;let e=Math.floor(Date.now()/1e3)-parseInt(this._ts.value,10),a=this._honey.value==="",s=a&&e>=this.state.minElapsed?"HUMAN":"BOT",o=s==="HUMAN"?"var(--cpcap-signal-green)":"var(--cpcap-hot)";this._debug.innerHTML=`<div>field empty: <span style="color: ${a?"var(--cpcap-signal-green)":"var(--cpcap-hot)"}">${a?"\u2713 true":"\u2717 false (\xAB"+g(this._honey.value.substring(0,30))+"\xBB)"}</span></div><div>elapsed: <span style="color: ${e>=this.state.minElapsed?"var(--cpcap-signal-green)":"var(--cpcap-hot)"}">${e}s${e>=this.state.minElapsed?" \u2713":` (need \u2265${this.state.minElapsed})`}</span></div><div>verdict: <span style="color: ${o}; font-weight: bold">${s}</span></div>`}destroy(){this._timer&&clearInterval(this._timer),super.destroy()}checkValid(){let t=Math.floor(Date.now()/1e3)-parseInt(this._ts.value,10);return this._honey.value!==""?{pass:!1,message:"honeypot triggered (bot detected)"}:t<this.state.minElapsed?{pass:!1,message:`too fast (${t}s < ${this.state.minElapsed}s)`}:{pass:!0,message:`verified (${t}s elapsed)`}}};n(u,"id","honeypot-time"),n(u,"name","Honeypot + Time-based");var P=[[{code:`\u041F\u0440\u043E\u0446\u0435\u0434\u0443\u0440\u0430 \u0422\u0435\u0441\u0442()
+  \u0421\u043E\u043E\u0431\u0449\u0438\u0442\u044C("\u041F\u0440\u0438\u0432\u0435\u0442");
+\u041A\u043E\u043D\u0435\u0446\u041F\u0440\u043E\u0446\u0435\u0434\u0443\u0440\u044B`,bug:!1},{code:`\u0415\u0441\u043B\u0438 \u0430 > 0 \u0422\u043E\u0433\u0434\u0430
+  \u0421\u043E\u043E\u0431\u0449\u0438\u0442\u044C("+");
+\u041A\u043E\u043D\u0435\u0446\u0415\u0441\u043B\u0438;`,bug:!1},{code:`\u041F\u0440\u043E\u0446\u0435\u0434\u0443\u0440\u0430 \u0422\u0435\u0441\u0442()
+  \u0421\u043E\u043E\u0431\u0449\u0438\u0442\u044C("\u041F\u0440\u0438\u0432\u0435\u0442");`,bug:!0}],[{code:`\u0422\u043E\u0432\u0430\u0440\u044B = \u041D\u043E\u0432\u044B\u0439 \u041C\u0430\u0441\u0441\u0438\u0432;
+\u0422\u043E\u0432\u0430\u0440\u044B.\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C("\u041F\u0438\u0446\u0446\u0430");`,bug:!1},{code:`\u0422\u043E\u0432\u0430\u0440\u044B = \u041D\u043E\u0432\u044B\u0439 \u041C\u0430\u0441\u0441\u0438\u0432(;
+\u0422\u043E\u0432\u0430\u0440\u044B.\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C("\u041F\u0438\u0446\u0446\u0430");`,bug:!0},{code:`\u0422\u043E\u0432\u0430\u0440\u044B = \u041D\u043E\u0432\u044B\u0439 \u041C\u0430\u0441\u0441\u0438\u0432;
+\u0422\u043E\u0432\u0430\u0440\u044B.\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C();`,bug:!1}],[{code:`\u0417\u0430\u043F\u0440\u043E\u0441 = \u041D\u043E\u0432\u044B\u0439 \u0417\u0430\u043F\u0440\u043E\u0441;
+\u0417\u0430\u043F\u0440\u043E\u0441.\u0422\u0435\u043A\u0441\u0442 = "\u0412\u042B\u0411\u0420\u0410\u0422\u042C * \u0418\u0417 \u0421\u043F\u0440\u0430\u0432\u043E\u0447\u043D\u0438\u043A.\u041D\u043E\u043C\u0435\u043D\u043A\u043B\u0430\u0442\u0443\u0440\u0430";`,bug:!1},{code:`\u0417\u0430\u043F\u0440\u043E\u0441 = \u041D\u043E\u0432\u044B\u0439 \u0417\u0430\u043F\u0440\u043E\u0441
+\u0417\u0430\u043F\u0440\u043E\u0441.\u0422\u0435\u043A\u0441\u0442 = "\u0412\u042B\u0411\u0420\u0410\u0422\u042C";`,bug:!0},{code:`\u0417\u0430\u043F\u0440\u043E\u0441 = \u041D\u043E\u0432\u044B\u0439 \u0417\u0430\u043F\u0440\u043E\u0441;
+\u0420\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442 = \u0417\u0430\u043F\u0440\u043E\u0441.\u0412\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u044C();`,bug:!1}],[{code:`\u0414\u043B\u044F \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0421\u0442\u0440 \u0418\u0437 \u0422\u0430\u0431\u043B\u0438\u0446\u0430 \u0426\u0438\u043A\u043B
+  \u0421\u043E\u043E\u0431\u0449\u0438\u0442\u044C(\u0421\u0442\u0440.\u0418\u043C\u044F);
+\u041A\u043E\u043D\u0435\u0446\u0426\u0438\u043A\u043B\u0430;`,bug:!1},{code:`\u0414\u043B\u044F \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0421\u0442\u0440 \u0418\u0437 \u0422\u0430\u0431\u043B\u0438\u0446\u0430 \u0426\u0438\u043A\u043B
+  \u0421\u043E\u043E\u0431\u0449\u0438\u0442\u044C(\u0421\u0442\u0440.\u0418\u043C\u044F);`,bug:!0},{code:`\u041F\u043E\u043A\u0430 \u0421\u0447\u0451\u0442\u0447\u0438\u043A < 10 \u0426\u0438\u043A\u043B
+  \u0421\u0447\u0451\u0442\u0447\u0438\u043A = \u0421\u0447\u0451\u0442\u0447\u0438\u043A + 1;
+\u041A\u043E\u043D\u0435\u0446\u0426\u0438\u043A\u043B\u0430;`,bug:!1}],[{code:'\u0421\u043E\u043E\u0431\u0449\u0438\u0442\u044C("\u041F\u0440\u0438\u0432\u0435\u0442, " + \u0418\u043C\u044F\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F);',bug:!1},{code:`\u0421\u043E\u043E\u0431\u0449\u0438\u0442\u044C("\u041F\u0440\u0438\u0432\u0435\u0442, " + \u0418\u043C\u044F\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F);
+  \u0421\u043E\u043E\u0431\u0449\u0438\u0442\u044C(\u0414\u0430\u0442\u0430);`,bug:!1},{code:'\u0421\u043E\u043E\u0431\u0449\u0438\u0442\u044C("\u041F\u0440\u0438\u0432\u0435\u0442, " + \u0418\u043C\u044F\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F;',bug:!0}]],m=class extends r{render(){let t=this.options.sets||P;this.state.set=p(t).slice().sort(()=>Math.random()-.5),this.state.solved=!1,this.mount.innerHTML=`
+      <div class="cpcap-label">
+        <span>// CLICK THE BROKEN TRANSMISSION</span>
+        <span class="cpcap-bug-status">scan\u2026</span>
+      </div>
+      <div class="cpcap-bug-snippets">
+        ${this.state.set.map(e=>`<div class="cpcap-bug-snippet" data-bug="${e.bug?"1":"0"}">${this._escape(e.code)}</div>`).join("")}
+      </div>
+    `,this._snippetsRoot=this.mount.querySelector(".cpcap-bug-snippets"),this._statusEl=this.mount.querySelector(".cpcap-bug-status"),this._snippetsRoot.addEventListener("click",e=>this._onClick(e))}_escape(t){return String(t).replace(/[&<>"']/g,e=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[e])}_onClick(t){if(this.state.solved)return;let e=t.target.closest(".cpcap-bug-snippet");if(!e)return;e.getAttribute("data-bug")==="1"?(e.classList.add("cpcap-locked-correct"),this._statusEl.textContent="\u2713 broken transmission spotted",this._statusEl.style.color="var(--cpcap-signal-green)",this.state.solved=!0,this.emit("change",!0)):(e.classList.add("cpcap-locked-wrong"),this._statusEl.textContent="\u2717 this one valid, scan others",this._statusEl.style.color="var(--cpcap-hot)")}checkValid(){return this.state.solved?{pass:!0,message:"bug spotted \u2014 1\u0421 verified"}:{pass:!1,message:"find the broken snippet"}}};n(m,"id","code-bug-1c"),n(m,"name","1\u0421 Code \u2014 Spot the Bug");var z=["LAVA","ORBS","NEON","CYBER","VECTOR","PIXEL","GHOST","ECHO","SIGNAL","MATRIX"],I="\u2588\u2593\u2592\u2591#@$%&*+=!?>~",f=class extends r{render(){this.state.pool=this.options.pool||z,this.state.windowSize=this.options.windowSize||3;let t=this.options.targetMin||30,e=this.options.targetMax||89;this.state.expected=p(this.state.pool),this.state.target=k(t,e),this.mount.innerHTML=`
+      <div class="cpcap-label">
+        <span>// SCRUB-DECODE</span>
+        <span class="cpcap-scrub-status">find sweet spot\u2026</span>
+      </div>
+      <div class="cpcap-scrub-display"></div>
+      <input type="range" class="cpcap-scrub-slider" min="0" max="100" value="0" step="1" />
+      <div class="cpcap-scrub-readout">
+        <span>0%</span>
+        <span class="cpcap-scrub-pct">0%</span>
+        <span>window: <span class="cpcap-scrub-target">${this.state.target-this.state.windowSize}\u2013${this.state.target+this.state.windowSize}%</span></span>
+      </div>
+      <div style="margin-top: 14px;">
+        <input type="text" class="cpcap-input cpcap-scrub-input" autocomplete="off" placeholder="type the revealed signal" />
+      </div>
+    `,this._slider=this.mount.querySelector(".cpcap-scrub-slider"),this._display=this.mount.querySelector(".cpcap-scrub-display"),this._pct=this.mount.querySelector(".cpcap-scrub-pct"),this._statusEl=this.mount.querySelector(".cpcap-scrub-status"),this._input=this.mount.querySelector(".cpcap-scrub-input"),this._slider.addEventListener("input",()=>this._update()),this._input.addEventListener("input",()=>this.emit("change")),this._update()}_update(){let t=parseInt(this._slider.value,10);this._pct.textContent=`${t}%`;let e=this.state.windowSize,a=this.state.target,s;t>=a-e&&t<=a+e?s=0:t<a-e?s=a-e-t:s=t-(a+e);let o;s===0?o=1:s>=30?o=0:o=1-s/30;let c=this.state.expected,v=Math.round(c.length*o),E="";for(let _=0;_<c.length;_++)_<v?E+=c.charAt(_):E+=I.charAt(Math.floor(Math.random()*I.length));this._display.textContent=E,s===0?(this._statusEl.textContent=`\u2713 in sweet spot \xB7 ${t}%`,this._statusEl.className="cpcap-scrub-status cpcap-ok",this._statusEl.style.color="var(--cpcap-cyan)"):s<5?(this._statusEl.textContent=`almost there \xB7 ${t}% (off by ${s})`,this._statusEl.style.color="var(--cpcap-text-dim)"):o>.4?(this._statusEl.textContent=`getting closer \xB7 ${t}%`,this._statusEl.style.color="var(--cpcap-text-muted)"):(this._statusEl.textContent=`too far \xB7 ${t}%`,this._statusEl.style.color="var(--cpcap-text-muted)"),this.emit("change",t)}checkValid(){let t=parseInt(this._slider.value,10),e=this.state.windowSize,a=this.state.target;if(t<a-e||t>a+e)return{pass:!1,message:`out of sweet spot: ${t}% \u2209 [${a-e}\u2013${a+e}]`};let s=(this._input.value||"").trim().toUpperCase();return s?s===this.state.expected?{pass:!0,message:`sweet spot hit: ${t}% \xB7 signal: ${this.state.expected}`}:{pass:!1,message:`wrong: \xAB${g(s)}\xBB \u2260 \xAB${this.state.expected}\xBB`}:{pass:!1,message:"type the revealed signal"}}};n(f,"id","scrub-reveal"),n(f,"name","Scrub Reveal");var w={"decoder-lock":h,"lava-orb-temp":l,"sequence-decode":d,"honeypot-time":u,"code-bug-1c":m,"scrub-reveal":f},x=class{constructor(t,e={}){this.mount=t,this.opts=e;let a=e.variants||Object.keys(w);if(this.variants=a.filter(v=>w[v]),this.variants.length===0)throw new Error("[cyberpunk-captcha] no valid variants");let s;if(e.pickStrategy==="session"&&typeof sessionStorage!="undefined"){let v=e.sessionKey||"cpcap-pick";s=sessionStorage.getItem(v),(!s||!this.variants.includes(s))&&(s=this.variants[Math.floor(Math.random()*this.variants.length)],sessionStorage.setItem(v,s))}else s=this.variants[Math.floor(Math.random()*this.variants.length)];this.pickedId=s;let o=w[s],c=e.options&&e.options[s]||{};this.captcha=new o(t,c)}isValid(){return this.captcha.isValid()}validate(){return this.captcha.validate()}replay(){this.captcha.replay()}destroy(){this.captcha.destroy()}on(t,e){return this.captcha.on(t,e)}off(t,e){this.captcha.off(t,e)}};typeof window!="undefined"&&(window.CyberpunkCaptcha=window.CyberpunkCaptcha||{BaseCaptcha:r,DecoderLock:h,LavaOrbTemp:l,SequenceDecode:d,HoneypotTime:u,CodeBug1C:m,ScrubReveal:f,CaptchaRotation:x});return D(j);})();
+
+
+(function(){
+  var C = window.CyberpunkCaptcha;
+  if (!C) { console.warn('CyberpunkCaptcha not loaded'); return; }
+  function init() {
+    var captchas = {
+      decoder: new C.DecoderLock(document.getElementById('demo-decoder')),
+      lava:    new C.LavaOrbTemp(document.getElementById('demo-lava')),
+      seq:     new C.SequenceDecode(document.getElementById('demo-seq')),
+      hp:      new C.HoneypotTime(document.getElementById('demo-hp')),
+      bug:     new C.CodeBug1C(document.getElementById('demo-bug')),
+      scrub:   new C.ScrubReveal(document.getElementById('demo-scrub'))
+    };
+    document.querySelectorAll('[data-demo]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-demo');
+        var action = btn.getAttribute('data-action');
+        var captcha = captchas[id];
+        if (!captcha) return;
+        var verdictEl = document.querySelector('.cap-demo-verdict[data-for="'+id+'"]');
+        if (action === 'validate') {
+          var v = captcha.validate();
+          if (verdictEl) {
+            verdictEl.className = 'cap-demo-verdict show ' + (v.pass ? 'pass' : 'fail');
+            verdictEl.textContent = (v.pass ? '✓ Прошёл · ' : '✗ Не прошёл · ') + v.message;
+          }
+        } else if (action === 'replay') {
+          captcha.replay();
+          if (verdictEl) {
+            verdictEl.className = 'cap-demo-verdict';
+            verdictEl.textContent = '';
+          }
+        }
+      });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
+</script>
+
+</body></html>
