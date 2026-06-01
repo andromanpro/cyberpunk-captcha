@@ -189,3 +189,7 @@ For older browsers, transpile via Babel using your own bundler.
 ## License
 
 MIT © [Roman Andriyanov (androman)](https://androman.pro)
+
+---
+
+🌐 [androman.pro](https://androman.pro) · ✈ [Telegram](https://t.me/andromanpro1c)
